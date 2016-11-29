@@ -21,7 +21,7 @@ Our team will keep hacking on Klaxon in spare moments, and we plan to keep it hu
 ### Getting started
 One of our goals for Klaxon is to make it as easy as possible for reporters and editors without tech backgrounds to use and to set up. Getting your own Klaxon running in your newsroom will require you to run a handful of instructions one time through the help of online services Heroku and Github. Following these directions, it should take maybe 10 minutes to set up your Klaxon, including the time to create accounts on Heroku and Github if you need to.
 
-We use [Heroku](https://heroku.com/) to deploy software in The Marshall Project newsroom. We think it makes some of the tedious work of running servers a lot easier to deal with, so we designed Klaxon to be easily deployable on Heroku. (If you’d like to run this in your newsroom’s preferred server setup — say using Docker or a generic Linux machine — we encourage you to do so, and to send it back to us, with documentation, [in a pull request](CONTRIBUTING.md).) So first, you’ll need to [create an account with Heroku](https://signup.heroku.com/), if you don’t already have one.
+We use [Heroku](https://heroku.com/) to deploy software in The Marshall Project newsroom. We think it makes some of the tedious work of running servers a lot easier to deal with, so we designed Klaxon to be easily deployable on Heroku. So first, you’ll need to [create an account with Heroku](https://signup.heroku.com/), if you don’t already have one.
 
 ### How much will this cost?
 It should be free to get started with Klaxon on Heroku, but if you start using it a lot, you may need to pay a small amount to keep it running. Out of the box with Heroku, for free you’ll get:
@@ -55,6 +55,38 @@ When you see this message:
 Click on the button that says “Manage App”. This takes you behind the scenes of the various components powering your Klaxon. On this resources screen, click on the link for “Heroku Scheduler,” which will take you a new screen where you must add the very important piece. The scheduler is what runs every 10 minutes to actually check all the sites and pages you’re watching. Click the long, purple ‘Add new job” button. In the text box next to the dollar sign, type the words “rake check:all” with the colon and without the quotes. Under “Frequency,” change it from “Daily” to “Every 10 minutes”. Click the purple “Save” button and your scheduler item should look like this:
 
 ![](docs/scheduler.png)
+
+### Installing on Linux
+
+To run Klaxon on a generic Linux box (such as an AWS instance or a private machine), you'll need to have Bundler and `ruby-dev` (for compiling native extensions) installed, both of which should be available from your distribution's package manager. You will also need PostgreSQL for storage, and it may be helpful to have PGAdmin installed for troubleshooting.
+
+Start by cloning this repo into a new directory, and open it in your terminal. Then run `bundle install` to install dependencies as specified in the Gemfile. You may need to edit the Gemfile on some machines, since it targets Ruby 2.3.0 (Ubuntu is currently shipping Ruby 2.3.1). Once the gems are installed, create the Klaxon database by running the following command:
+
+```
+bundle exec rake db:setup
+```
+
+Because the default setup procedure is designed for Heroku, it automates creating admin users from environment variables. On a local instance, however, it is probably easier to create the users manually. Connect to your database using the command line `psql` utility:
+
+```
+psql klaxon_development
+```
+
+Then create your initial admin user with the following query:
+
+```
+INSERT INTO users (email, created_at, updated_at) VALUES ('admin.email@yournewsroom.org', NOW(), NOW());
+```
+
+Now you can start the server using the installed Puma gem:
+
+```
+bundler puma -C config/puma.rb
+```
+
+Finally, you will need to configure a cron task to run `bundle exec rake check:all` at regular intervals, replicating the Heroku task scheduler, and you may want to set your server to run as a service. For instructions, check the documentation for your distribution.
+
+### Logging in
 
 Now, at the top of the scheduler page, click the link that is the name of your app (“sl-klaxon”). This will take you to your Klaxon’s login screen on the web.
 
